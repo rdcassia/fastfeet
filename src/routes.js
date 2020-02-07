@@ -7,8 +7,8 @@ import recipientController from './app/controllers/RecipientController';
 const routes = new Router();
 
 routes.get('/',(req, res)=>{console.log("teste")});
-routes.post('/session', sessionController.store);
-routes.post('/teste', recipientController.store);
-//routes.use(authMiddleware);
+routes.post('/sessions', sessionController.store);
+routes.use(authMiddleware);
+routes.post('/recipients', recipientController.store);
 
 export default routes;
