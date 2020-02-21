@@ -1,24 +1,11 @@
 import * as Yup from 'yup';
 
-import DeliveryMan from '../models/DeliveryMan'
+import DeliveryMan from '../models/Deliveryman'
 import File from '../models/File'
 
 
 class DeliveryManController {
 
- 
-    async validar(value) {
-      const schema = Yup.object().shape({
-        name: Yup.string().required(),
-        email: Yup.string()
-          .email()
-          .required()
-      });
-      
-      return await schema.isValid(value.body);    
-
-    }
-  
 
   async index(req, res){
     const deliverymans = await DeliveryMan.findAll({
@@ -37,8 +24,7 @@ class DeliveryManController {
         .required()
     });
 
-    
-    if (this.teste('A')) {   
+    if (!(await validar(req))) {   
       return res.status(400).json({ error: 'Falha na validação'})
     }
 
@@ -80,18 +66,19 @@ class DeliveryManController {
     }
 
   }
-
-
-  teste(value) {
-    console.log('teste');
-    return value;
-  }
-  
-
  
 }
 
+const validar = async value => {
+  const schema = Yup.object().shape({
+    name: Yup.string().required(),
+    email: Yup.string()
+      .email()
+      .required()
+  });
+  
+  return await schema.isValid(value.body);    
 
-
+}
 
 export default new DeliveryManController();
