@@ -1,19 +1,21 @@
 import * as Yup from 'yup';
 
-import DeliveryMan from '../models/Deliveryman'
-import File from '../models/File'
-
+import Deliveryman from '../models/Deliveryman';
+import File from '../models/File';
 
 class DeliveryManController {
-
-
-  async index(req, res){
-    const deliverymans = await DeliveryMan.findAll({
-      attributes: ['id','name','email']     
+  async index(req, res) {
+    const deliverymans = await Deliveryman.findAll({
+      attributes: ['id', 'name', 'email'],
+      include: [
+        {
+          model: File,
+          as: 'avatar',
+          attributes: ['id', 'path', 'url'],
+        },
+      ],
     });
-
     return res.json(deliverymans);
-
   }
 
   async store(req, res) {
@@ -21,64 +23,92 @@ class DeliveryManController {
       name: Yup.string().required(),
       email: Yup.string()
         .email()
-        .required()
+        .required(),
     });
 
-    if (!(await validar(req))) {   
-      return res.status(400).json({ error: 'Falha na validação'})
+    if (!schema.isValid(req.body)) {
+      return res.status(400).json({ error: 'Falha na validação!' });
     }
 
-    const deliverymanExists =  await DeliveryMan.findOne({
-      where: { email: req.body.email}
+    const dliveryManExist = await Deliveryman.findOne({
+      where: { email: req.body.email },
     });
 
-    if (deliverymanExists) {
-      return res.status(400).json({ error: 'Entregador já cadastrado!'})
+    if (dliveryManExist) {
+      return res.status(400).json({ error: 'Entregador já cadastrado!' });
     }
 
-    const {id, name, email} = await DeliveryMan.create(req.body);
+    const { id, name, email } = await Deliveryman.create(req.body);
 
     return res.json({
       id,
       name,
-      email
-    })    
+      email,
+    });
   }
 
   async update(req, res) {
     const schema = Yup.object().shape({
-      name: Yup.string().required(),
-      email: Yup.string()
-        .email()
-        .required()
+      name: Yup.string(),
+      email: Yup.string().email(),
     });
 
-    if (!(await schema.isValid(req.body))) {
-      return res.status(400).json({ error: 'Falha na validação'})
+    if (!schema.isValid(req.body)) {
+      return res.status(400).json({ error: 'Falha na validação!' });
     }
 
-    const deliverymanExists =  await DeliveryMan.findOne({
-      where: { email: req.body.email}
+    const deliveryMan = await Deliveryman.findByPk(req.params.id);
+
+    if (!deliveryMan) {
+      return res.status(400).json({ error: 'Entregador não existe!' });
+    }
+
+    if (req.body.email && req.body.email != deliveryMan.email) {
+      const dliveryManExists = await Deliveryman.findOne({
+        where: { email: req.body.email },
+      });
+
+      if (dliveryManExists) {
+        return res.status(400).json({ error: 'Entregadar já cadastrado.' });
+      }
+    }
+
+    const { id, name, avatar, email } = await deliveryMan
+      .update(req.body)
+      .then(async () => {
+        return await Deliveryman.findByPk(req.params.id, {
+          attributes: ['id', 'name', 'email'],
+          include: [
+            {
+              model: File,
+              as: 'avatar',
+              attributes: ['id', 'path', 'url'],
+            },
+          ],
+        });
+      })
+      .catch(err => {
+        res.status(400).json('Falha na edição do entregador');
+      });
+
+    return res.json({
+      id,
+      name,
+      email,
+      avatar,
     });
-
-    if (deliverymanExists) {
-      return res.status(400).json({ error: 'Entregador já cadastrado!'})
-    }
-
   }
- 
-}
 
-const validar = async value => {
-  const schema = Yup.object().shape({
-    name: Yup.string().required(),
-    email: Yup.string()
-      .email()
-      .required()
-  });
-  
-  return await schema.isValid(value.body);    
+  async delete(req, res) {
+    const deliveryMan = await Deliveryman.findByPk(req.params.id);
 
+    if (!deliveryMan) {
+      return res.status(400).json('Entregador não existe!');
+    }
+
+    deliveryMan.destroy();
+    return res.json('Entregador excluído!');
+  }
 }
 
 export default new DeliveryManController();
